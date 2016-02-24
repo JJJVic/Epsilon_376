@@ -30,7 +30,7 @@ DesStatePublisher::DesStatePublisher(ros::NodeHandle& nh) : nh_(nh) {
     motion_mode_ = DONE_W_SUBGOAL; //init in state ready to process new goal
     e_stop_trigger_ = false; //these are intended to enable e-stop via a service
     e_stop_reset_ = false; //and reset estop
-    current_pose_ = trajBuilder_.xyPsi2PoseStamped(0, 0, 0);
+    current_pose_ = trajBuilder_.xyPsi2PoseStamped(0,0,0);
     start_pose_ = current_pose_;
     end_pose_ = current_pose_;
     current_des_state_.twist.twist = halt_twist_;
@@ -38,19 +38,16 @@ DesStatePublisher::DesStatePublisher(ros::NodeHandle& nh) : nh_(nh) {
     halt_state_ = current_des_state_;
     seg_start_state_ = current_des_state_;
     seg_end_state_ = current_des_state_;
-    ros::Subscriber sub = n.subscribe("/scan", 1, alarmCB);
-    ros::Subscriber sub = n.subscribe("motors_enabled", 1, estopServiceCallback);
+    ros::Subscriber sub = n.subscribe("/scan",1,alarmCB);
 }
 
 bool alarm = false;
-
-void alarmCB(const std_msgs::Bool g_alarm) {
-    if (g_alarm.data == true)
-        ROS_WARN("Alarming, alarming!");
-    alarm = true;
-    else {
-        alarm = false;
-    }
+void alarmCB(const std_msgs::Bool g_alarm)
+{
+	if(g_alarm.data==true)
+		ROS_WARN("Alarming, alarming!");
+	alarm= true;
+else{alarm = false;}
 }
 
 void DesStatePublisher::initializeServices() {
@@ -63,7 +60,7 @@ void DesStatePublisher::initializeServices() {
             &DesStatePublisher::flushPathQueueCB, this);
     append_path_ = nh_.advertiseService("append_path_queue_service",
             &DesStatePublisher::appendPathQueueCB, this);
-
+    
 }
 
 //member helper function to set up publishers;
@@ -86,7 +83,8 @@ bool DesStatePublisher::clearEstopServiceCallback(std_srvs::TriggerRequest& requ
 
 bool DesStatePublisher::flushPathQueueCB(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
     ROS_WARN("flushing path queue");
-    while (!path_queue_.empty()) {
+    while (!path_queue_.empty())
+    {
         path_queue_.pop();
     }
 }
@@ -135,21 +133,24 @@ void DesStatePublisher::pub_next_state() {
         e_stop_reset_ = false; //reset trigger
         if (motion_mode_ != E_STOPPED) {
             ROS_WARN("e-stop reset while not in e-stop mode");
-        }            //OK...want to resume motion from e-stopped mode;
+        }
+        //OK...want to resume motion from e-stopped mode;
         else {
             motion_mode_ = DONE_W_SUBGOAL; //this will pick up where left off
         }
     }
 
-    if (alarm == true) {
-        ROS_WARN("Lidar Alarm");
-        motion_mode_ = HALTING;
-    }
-    if (alarm == false) {
-        motion_mode_ = PURSUING_SUBGOAL;
-    }
+    if(alarm == true)
+      { 
+          ROS_WARN("Lidar Alarm");
+          motion_mode_ = HALTING;
+      }
+     if(alarm == false)
+      { 
+          motion_mode_ = PURSUING_SUBGOAL;
+      }
 
-
+    
     //state machine; results in publishing a new desired state
     switch (motion_mode_) {
         case E_STOPPED: //this state must be reset by a service
@@ -166,8 +167,8 @@ void DesStatePublisher::pub_next_state() {
             current_pose_.header = current_des_state_.header;
             des_psi_ = trajBuilder_.convertPlanarQuat2Psi(current_pose_.pose.orientation);
             float_msg_.data = des_psi_;
-            des_psi_publisher_.publish(float_msg_);
-
+            des_psi_publisher_.publish(float_msg_); 
+            
             traj_pt_i_++;
             //segue from braking to halted e-stop state;
             if (traj_pt_i_ >= npts_traj_) { //here if completed all pts of braking traj
@@ -190,14 +191,14 @@ void DesStatePublisher::pub_next_state() {
             // for rqt_plot visualization            
             des_psi_ = trajBuilder_.convertPlanarQuat2Psi(current_pose_.pose.orientation);
             float_msg_.data = des_psi_;
-            des_psi_publisher_.publish(float_msg_);
+            des_psi_publisher_.publish(float_msg_); 
             traj_pt_i_++; // increment counter to prep for next point of plan
             //check if we have clocked out all of our planned states:
             if (traj_pt_i_ >= npts_traj_) {
                 motion_mode_ = DONE_W_SUBGOAL; //if so, indicate we are done
                 seg_end_state_ = des_state_vec_.back(); // last state of traj
                 path_queue_.pop(); // done w/ this subgoal; remove from the queue 
-                ROS_INFO("reached a subgoal: x = %f, y= %f", current_pose_.pose.position.x,
+                ROS_INFO("reached a subgoal: x = %f, y= %f",current_pose_.pose.position.x,
                         current_pose_.pose.position.y);
             }
             break;
@@ -208,10 +209,10 @@ void DesStatePublisher::pub_next_state() {
 
             if (!path_queue_.empty()) {
                 int n_path_pts = path_queue_.size();
-                ROS_INFO("%d points in path queue", n_path_pts);
+                ROS_INFO("%d points in path queue",n_path_pts);
                 start_pose_ = current_pose_;
                 end_pose_ = path_queue_.front();
-                trajBuilder_.build_point_and_go_traj(start_pose_, end_pose_, des_state_vec_);
+                trajBuilder_.build_point_and_go_traj(start_pose_, end_pose_,des_state_vec_);
                 traj_pt_i_ = 0;
                 npts_traj_ = des_state_vec_.size();
                 motion_mode_ = PURSUING_SUBGOAL; // got a new plan; change mode to pursue it
