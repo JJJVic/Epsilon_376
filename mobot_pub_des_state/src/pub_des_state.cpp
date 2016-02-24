@@ -48,9 +48,6 @@ void alarmCB(const std_msgs::Bool g_alarm) {
     if (g_alarm.data == true)
         ROS_WARN("Alarming, alarming!");
     alarm = true;
-    else {
-        alarm = false;
-    }
 }
 
 void DesStatePublisher::initializeServices() {
@@ -130,6 +127,16 @@ void DesStatePublisher::pub_next_state() {
         traj_pt_i_ = 0;
         npts_traj_ = des_state_vec_.size();
     }
+
+    if (alarm) {
+        alarm = false; //reset trigger
+        //compute a halt trajectory
+        trajBuilder_.build_braking_traj(current_pose_, des_state_vec_);
+        motion_mode_ = HALTING;
+        traj_pt_i_ = 0;
+        npts_traj_ = des_state_vec_.size();
+    }
+
     //or if an e-stop has been cleared
     if (e_stop_reset_) {
         e_stop_reset_ = false; //reset trigger
@@ -139,14 +146,6 @@ void DesStatePublisher::pub_next_state() {
         else {
             motion_mode_ = DONE_W_SUBGOAL; //this will pick up where left off
         }
-    }
-
-    if (alarm == true) {
-        ROS_WARN("Lidar Alarm");
-        motion_mode_ = HALTING;
-    }
-    if (alarm == false) {
-        motion_mode_ = PURSUING_SUBGOAL;
     }
 
 

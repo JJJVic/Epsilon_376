@@ -406,7 +406,29 @@ void TrajBuilder::build_triangular_spin_traj(geometry_msgs::PoseStamped start_po
 void TrajBuilder::build_braking_traj(geometry_msgs::PoseStamped start_pose,
         std::vector<nav_msgs::Odometry> &vec_of_states) {
     //FINISH ME!
+    ROS_INFO("braking_traj");
+    nav_msgs::Odometry des_state;
+    des_state.header = start_pose.header; //really, want to copy the frame_id
+    des_state.pose.pose = start_pose.pose; //start from here
+    des_state.twist.twist = halt_twist_; // insist on starting from rest   
+    //vec_of_states.push_back(des_state);  //star from here
+    double speed_down = 0.5*speed_max_;
+    double psi_des = convertPlanarQuat2Psi(start_pose.pose.orientation);
+    double x_start = start_pose.pose.position.x;
+    double y_start = start_pose.pose.position.y;
+    double x_des = x_start; //start from here
+    double y_des = y_start;
 
+    while(speed_down > 0){
+        ROS_INFO("deceleration !");
+        speed_down -= accel_max_*dt_; //Euler one-step integration
+        des_state.twist.twist.linear.x = speed_down;
+        x_des += speed_down * dt_ * cos(psi_des); //Euler one-step integration
+        y_des += speed_down * dt_ * sin(psi_des); //Euler one-step integration
+        des_state.pose.pose.position.x = x_des;
+        des_state.pose.pose.position.y = y_des;
+        vec_of_states.push_back(des_state);       
+    }   
 }
 
 //main fnc of this library: constructs a spin-in-place reorientation to
