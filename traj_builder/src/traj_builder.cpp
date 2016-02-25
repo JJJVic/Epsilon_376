@@ -406,74 +406,55 @@ void TrajBuilder::build_triangular_spin_traj(geometry_msgs::PoseStamped start_po
 void TrajBuilder::build_braking_traj(geometry_msgs::PoseStamped start_pose,
 		std::vector<nav_msgs::Odometry> &vec_of_states) {
 
-//	double x_start = start_pose.pose.position.x;
-//	double y_start = start_pose.pose.position.y;
-//
-//	//time to decelerate from max speed to 0
-//	double stop_time =  speed_max_/accel_max_;
-//
-//	//assume we start at max speed
-//	double dx = speed_max_ * stop_time + 0.5 * -accel_max_ * stop_time * stop_time * cos(psi_des);
-//	double dy = speed_max_ * stop_time + 0.5 * -accel_max_ * stop_time * stop_time * cos(psi_des);
-//
-//	y_start + 0.5 * accel_max_ * stop_time * stop_time * sin(psi_des);
-//
-//	geometry_msgs::PoseStamped end_pose = start_pose;
-//	end_pose.pose.pose.position.x = ;
-//	end_pose.pose.pose.position.y = ;
-//
-//	double dx = x_end - x_start;
-//	double dy = y_end - y_start;
-//	double psi_des = atan2(dy, dx);
-//	nav_msgs::Odometry des_state;
-//	des_state.header = start_pose.header; //really, want to copy the frame_id
-//	des_state.pose.pose = start_pose.pose; //start from here
-//	des_state.twist.twist = halt_twist_; // insist on starting from rest
-//	double trip_len = sqrt(dx * dx + dy * dy);
-//	double t_ramp = sqrt(trip_len / accel_max_);
-//	int npts_ramp = round(t_ramp / dt_);
-//	double v_peak = accel_max_*t_ramp; // could consider special cases for reverse motion
-//	double d_vel = alpha_max_*dt_; // incremental velocity changes for ramp-up
-//
-//	double x_des = x_start; //start from here
-//	double y_des = y_start;
-//	double speed_des = 0.0;
-//	des_state.twist.twist.angular.z = 0.0; //omega_des; will not change
-//	des_state.pose.pose.orientation = convertPlanarPsi2Quaternion(psi_des); //constant
-//	// orientation of des_state will not change; only position and twist
-//	double t = 0.0;
-//	//ramp up;
-//	for (int i = 0; i < npts_ramp; i++) {
-//		t += dt_;
-//		speed_des = accel_max_*t;
-//		des_state.twist.twist.linear.x = speed_des; //update speed
-//		//update positions
-//		x_des = x_start + 0.5 * accel_max_ * t * t * cos(psi_des);
-//		y_des = y_start + 0.5 * accel_max_ * t * t * sin(psi_des);
-//		des_state.pose.pose.position.x = x_des;
-//		des_state.pose.pose.position.y = y_des;
-//		vec_of_states.push_back(des_state);
-//	}
-//	//ramp down:
-//	for (int i = 0; i < npts_ramp; i++) {
-//		speed_des -= accel_max_*dt_; //Euler one-step integration
-//		des_state.twist.twist.linear.x = speed_des;
-//		x_des += speed_des * dt_ * cos(psi_des); //Euler one-step integration
-//		y_des += speed_des * dt_ * sin(psi_des); //Euler one-step integration
-//		des_state.pose.pose.position.x = x_des;
-//		des_state.pose.pose.position.y = y_des;
-//		vec_of_states.push_back(des_state);
-//	}
-//	//make sure the last state is precisely where requested, and at rest:
-//	des_state.pose.pose = end_pose.pose;
-//	//but final orientation will follow from point-and-go direction
-//	des_state.pose.pose.orientation = convertPlanarPsi2Quaternion(psi_des);
-//	des_state.twist.twist = halt_twist_; // insist on starting from rest
-//	vec_of_states.push_back(des_state);
+	double x_start = start_pose.pose.position.x;
+	double y_start = start_pose.pose.position.y;
 
+	//time to decelerate from max speed to 0
+	double stop_time =  speed_max_/accel_max_;
 
+	//use starting orientation because we're not turning
+	double psi_des = convertPlanarQuat2Psi(start_pose.pose.orientation);
 
+	//assume we start at max speed
+	double dx = speed_max_ * stop_time + 0.5 * -accel_max_ * stop_time * stop_time * cos(psi_des);
+	double dy = speed_max_ * stop_time + 0.5 * -accel_max_ * stop_time * stop_time * sin(psi_des);
 
+	geometry_msgs::PoseStamped end_pose = start_pose;
+	end_pose.pose.position.x = x_start + dx;
+	end_pose.pose.position.y = y_start + dy;
+
+	nav_msgs::Odometry des_state;
+	des_state.header = start_pose.header; //really, want to copy the frame_id
+	des_state.pose.pose = start_pose.pose; //start from here
+	des_state.pose.pose.orientation = convertPlanarPsi2Quaternion(psi_des); //constant
+	des_state.twist.twist = halt_twist_; // insist on starting from rest
+	double trip_len = sqrt(dx * dx + dy * dy);
+	double t_ramp = sqrt(trip_len / accel_max_);
+	int npts_ramp = round(t_ramp / dt_);
+
+	double x_des = x_start; //start from here
+	double y_des = y_start;
+
+	//assume we're at max speed
+	double current_speed = speed_max_;
+	// orientation of des_state will not change; only position and twist
+	double t = 0.0;
+	//ramp down:
+	for (int i = 0; i < npts_ramp; i++) {
+		current_speed -= accel_max_*dt_; //Euler one-step integration
+		des_state.twist.twist.linear.x = current_speed;
+		x_des += current_speed * dt_ * cos(psi_des); //Euler one-step integration
+		y_des += current_speed * dt_ * sin(psi_des); //Euler one-step integration
+		des_state.pose.pose.position.x = x_des;
+		des_state.pose.pose.position.y = y_des;
+		vec_of_states.push_back(des_state);
+	}
+	//make sure the last state is precisely where requested, and at rest:
+	des_state.pose.pose = end_pose.pose;
+	//but final orientation will follow from point-and-go direction
+	des_state.pose.pose.orientation = convertPlanarPsi2Quaternion(psi_des);
+	des_state.twist.twist = halt_twist_; // insist on starting from rest
+	vec_of_states.push_back(des_state);
 
 }
 

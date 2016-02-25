@@ -1,9 +1,26 @@
 #include "pub_des_state.h"
+
+bool *alarm_p;
+
+
+void alarmCB(const std_msgs::Bool g_alarm) {
+
+    if (g_alarm.data == true){
+        ROS_WARN("ALARM CALLBACK IS ON!");
+       *alarm_p = true;
+    }
+    else{*alarm_p = false;}
+
+}
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "des_state_publisher");
     ros::NodeHandle nh;
     //instantiate a desired-state publisher object
     DesStatePublisher desStatePublisher(nh);
+    alarm_p = &(desStatePublisher.alarm);
+
+    ros::Subscriber sub = nh.subscribe("/scan", 1, alarmCB);
     //dt is set in header file pub_des_state.h    
     ros::Rate looprate(1 / dt); //timer for fixed publication rate
     desStatePublisher.set_init_pose(0,0,0); //x=0, y=0, psi=0
