@@ -5,9 +5,12 @@ bool *alarm_p;
 
 void alarmCB(const std_msgs::Bool g_alarm) {
 
-    if (g_alarm.data == true)
+    if (g_alarm.data == true){
         ROS_WARN("ALARM CALLBACK IS ON!");
-    *alarm_p = true;
+       *alarm_p = true;
+    }
+    else{*alarm_p = false;}
+
 }
 
 int main(int argc, char **argv) {
