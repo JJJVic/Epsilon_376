@@ -38,10 +38,10 @@ DesStatePublisher::DesStatePublisher(ros::NodeHandle& nh) : nh_(nh) {
     halt_state_ = current_des_state_;
     seg_start_state_ = current_des_state_;
     seg_end_state_ = current_des_state_;
-    ros::Subscriber sub = n.subscribe("/scan", 1, alarmCB);
-    ros::Subscriber sub = n.subscribe("motors_enabled", 1, estopServiceCallback);
+    alarm = false;
+//    ros::Subscriber sub1 = nh_.subscribe("/scan", 1, alarmCB);
 }
-
+/*
 bool alarm = false;
 
 void alarmCB(const std_msgs::Bool g_alarm) {
@@ -49,7 +49,7 @@ void alarmCB(const std_msgs::Bool g_alarm) {
         ROS_WARN("Alarming, alarming!");
     alarm = true;
 }
-
+*/
 void DesStatePublisher::initializeServices() {
     ROS_INFO("Initializing Services");
     estop_service_ = nh_.advertiseService("estop_service",
