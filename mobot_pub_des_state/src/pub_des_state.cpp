@@ -39,17 +39,9 @@ DesStatePublisher::DesStatePublisher(ros::NodeHandle& nh) : nh_(nh) {
     seg_start_state_ = current_des_state_;
     seg_end_state_ = current_des_state_;
     alarm = false;
-//    ros::Subscriber sub1 = nh_.subscribe("/scan", 1, alarmCB);
-}
-/*
-bool alarm = false;
 
-void alarmCB(const std_msgs::Bool g_alarm) {
-    if (g_alarm.data == true)
-        ROS_WARN("Alarming, alarming!");
-    alarm = true;
 }
-*/
+
 void DesStatePublisher::initializeServices() {
     ROS_INFO("Initializing Services");
     estop_service_ = nh_.advertiseService("estop_service",
@@ -142,6 +134,7 @@ void DesStatePublisher::pub_next_state() {
         e_stop_reset_ = false; //reset trigger
         if (motion_mode_ != E_STOPPED) {
             ROS_WARN("e-stop reset while not in e-stop mode");
+            e_stop_reset_ = true;
         }            //OK...want to resume motion from e-stopped mode;
         else {
             motion_mode_ = DONE_W_SUBGOAL; //this will pick up where left off
@@ -152,6 +145,7 @@ void DesStatePublisher::pub_next_state() {
     //state machine; results in publishing a new desired state
     switch (motion_mode_) {
         case E_STOPPED: //this state must be reset by a service
+            ROS_INFO("E_STOPPING");
             desired_state_publisher_.publish(halt_state_);
             break;
 
