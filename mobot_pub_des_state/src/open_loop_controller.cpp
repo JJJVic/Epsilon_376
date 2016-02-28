@@ -15,8 +15,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "open_loop_controller"); 
     ros::NodeHandle n; // two lines to create a publisher object that can talk to ROS
     g_twist_republisher = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
-    ros::Subscriber des_state_subscriber = n.subscribe("/desState",1,desStateCallback);
-         
+    ros::Subscriber des_state_subscriber = n.subscribe("/desState",1,desStateCallback);         
     ros::spin();
 
     

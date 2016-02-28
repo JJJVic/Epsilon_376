@@ -120,6 +120,15 @@ void DesStatePublisher::pub_next_state() {
         npts_traj_ = des_state_vec_.size();
     }
 
+    if (h_e_stop_) {
+        h_e_stop_ = false; //reset trigger
+        //compute a halt trajectory
+        trajBuilder_.build_braking_traj(current_pose_, des_state_vec_);
+        motion_mode_ = HALTING;
+        traj_pt_i_ = 0;
+        npts_traj_ = des_state_vec_.size();
+    }
+
     if (alarm) {
         alarm = false; //reset trigger
         //compute a halt trajectory
@@ -152,6 +161,7 @@ void DesStatePublisher::pub_next_state() {
         case HALTING: //e-stop service callback sets this mode
             //if need to brake from e-stop, service will have computed
             // new des_state_vec_, set indices and set motion mode;
+        ROS_INFO("HALTING");
             current_des_state_ = des_state_vec_[traj_pt_i_];
             current_des_state_.header.stamp = ros::Time::now();
             desired_state_publisher_.publish(current_des_state_);
@@ -175,6 +185,7 @@ void DesStatePublisher::pub_next_state() {
 
         case PURSUING_SUBGOAL: //if have remaining pts in computed traj, send them
             //extract the i'th point of our plan:
+        ROS_INFO("PURSUING SUBGOAL");
             current_des_state_ = des_state_vec_[traj_pt_i_];
             current_pose_.pose = current_des_state_.pose.pose;
             current_des_state_.header.stamp = ros::Time::now();
@@ -191,14 +202,13 @@ void DesStatePublisher::pub_next_state() {
                 seg_end_state_ = des_state_vec_.back(); // last state of traj
                 path_queue_.pop(); // done w/ this subgoal; remove from the queue 
                 ROS_INFO("reached a subgoal: x = %f, y= %f", current_pose_.pose.position.x,
-                        current_pose_.pose.position.y);
+                current_pose_.pose.position.y);
             }
             break;
 
         case DONE_W_SUBGOAL: //suspended, pending a new subgoal
             //see if there is another subgoal is in queue; if so, use
             //it to compute a new trajectory and change motion mode
-
             if (!path_queue_.empty()) {
                 int n_path_pts = path_queue_.size();
                 ROS_INFO("%d points in path queue", n_path_pts);

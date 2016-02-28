@@ -79,6 +79,7 @@ private:
 public:
     DesStatePublisher(ros::NodeHandle& nh);//constructor
     bool alarm; 
+    bool h_e_stop_;
     int get_motion_mode() {return motion_mode_;}
     void set_motion_mode(int mode) {motion_mode_ = mode;}
     bool get_estop_trigger() { return e_stop_trigger_;}
