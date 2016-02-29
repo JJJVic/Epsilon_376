@@ -28,6 +28,7 @@ DesStatePublisher::DesStatePublisher(ros::NodeHandle& nh) : nh_(nh) {
     halt_twist_.angular.y = 0.0;
     halt_twist_.angular.z = 0.0;
     motion_mode_ = DONE_W_SUBGOAL; //init in state ready to process new goal
+    h_e_stop_ = false;
     e_stop_trigger_ = false; //these are intended to enable e-stop via a service
     e_stop_reset_ = false; //and reset estop
     current_pose_ = trajBuilder_.xyPsi2PoseStamped(0, 0, 0);
@@ -66,11 +67,13 @@ void DesStatePublisher::initializePublishers() {
 bool DesStatePublisher::estopServiceCallback(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
     ROS_WARN("estop!!");
     e_stop_trigger_ = true;
+    return true;
 }
 
 bool DesStatePublisher::clearEstopServiceCallback(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
     ROS_INFO("estop reset");
     e_stop_reset_ = true;
+    return true;
 }
 
 bool DesStatePublisher::flushPathQueueCB(std_srvs::TriggerRequest& request, std_srvs::TriggerResponse& response) {
@@ -78,14 +81,15 @@ bool DesStatePublisher::flushPathQueueCB(std_srvs::TriggerRequest& request, std_
     while (!path_queue_.empty()) {
         path_queue_.pop();
     }
+    return true;
 }
 
 bool DesStatePublisher::appendPathQueueCB(mobot_pub_des_state::pathRequest& request, mobot_pub_des_state::pathResponse& response) {
-
     int npts = request.path.poses.size();
     ROS_INFO("appending path queue with %d points", npts);
     for (int i = 0; i < npts; i++)
         path_queue_.push(request.path.poses[i]);
+    return true;
 }
 
 void DesStatePublisher::set_init_pose(double x, double y, double psi) {
@@ -111,7 +115,8 @@ void DesStatePublisher::set_init_pose(double x, double y, double psi) {
 
 void DesStatePublisher::pub_next_state() {
     // first test if an e-stop has been triggered
-    if (e_stop_trigger_) {
+    if (e_stop_trigger_ && ((motion_mode_!=HALTING) && (motion_mode_!=E_STOPPED))) {
+    	ROS_WARN("E-STOP TRIGGERED");
         e_stop_trigger_ = false; //reset trigger
         //compute a halt trajectory
         trajBuilder_.build_braking_traj(current_pose_, des_state_vec_);
@@ -120,7 +125,8 @@ void DesStatePublisher::pub_next_state() {
         npts_traj_ = des_state_vec_.size();
     }
 
-    if (h_e_stop_) {
+    if (h_e_stop_ && ((motion_mode_!=HALTING) && (motion_mode_!=E_STOPPED))) {
+    	ROS_WARN("HARDWARE E-STOP TRIGGERED");
         h_e_stop_ = false; //reset trigger
         //compute a halt trajectory
         trajBuilder_.build_braking_traj(current_pose_, des_state_vec_);
@@ -129,7 +135,8 @@ void DesStatePublisher::pub_next_state() {
         npts_traj_ = des_state_vec_.size();
     }
 
-    if (alarm) {
+    if (alarm && ((motion_mode_!=HALTING) && (motion_mode_!=E_STOPPED))) {
+    	ROS_WARN("LIDAR ALARM TRIGGERED");
         alarm = false; //reset trigger
         //compute a halt trajectory
         trajBuilder_.build_braking_traj(current_pose_, des_state_vec_);
@@ -143,10 +150,10 @@ void DesStatePublisher::pub_next_state() {
         e_stop_reset_ = false; //reset trigger
         if (motion_mode_ != E_STOPPED) {
             ROS_WARN("e-stop reset while not in e-stop mode");
-            e_stop_reset_ = true;
         }            //OK...want to resume motion from e-stopped mode;
         else {
             motion_mode_ = DONE_W_SUBGOAL; //this will pick up where left off
+            ROS_INFO("DONE WITH SUBGOAL");
         }
     }
 
@@ -154,14 +161,12 @@ void DesStatePublisher::pub_next_state() {
     //state machine; results in publishing a new desired state
     switch (motion_mode_) {
         case E_STOPPED: //this state must be reset by a service
-            ROS_INFO("E_STOPPING");
             desired_state_publisher_.publish(halt_state_);
             break;
 
         case HALTING: //e-stop service callback sets this mode
             //if need to brake from e-stop, service will have computed
             // new des_state_vec_, set indices and set motion mode;
-        ROS_INFO("HALTING");
             current_des_state_ = des_state_vec_[traj_pt_i_];
             current_des_state_.header.stamp = ros::Time::now();
             desired_state_publisher_.publish(current_des_state_);
@@ -179,13 +184,14 @@ void DesStatePublisher::pub_next_state() {
                 halt_state_.twist.twist = halt_twist_;
                 seg_end_state_ = halt_state_;
                 current_des_state_ = seg_end_state_;
-                motion_mode_ = E_STOPPED; //change state to remain halted                    
+                motion_mode_ = E_STOPPED; //change state to remain halted     
+                ROS_INFO("E-STOPPING");
             }
             break;
 
         case PURSUING_SUBGOAL: //if have remaining pts in computed traj, send them
             //extract the i'th point of our plan:
-        ROS_INFO("PURSUING SUBGOAL");
+        	//ROS_INFO("PURSUING SUBGOAL");
             current_des_state_ = des_state_vec_[traj_pt_i_];
             current_pose_.pose = current_des_state_.pose.pose;
             current_des_state_.header.stamp = ros::Time::now();
@@ -199,6 +205,7 @@ void DesStatePublisher::pub_next_state() {
             //check if we have clocked out all of our planned states:
             if (traj_pt_i_ >= npts_traj_) {
                 motion_mode_ = DONE_W_SUBGOAL; //if so, indicate we are done
+                ROS_INFO("DONE WITH SUBGOAL");
                 seg_end_state_ = des_state_vec_.back(); // last state of traj
                 path_queue_.pop(); // done w/ this subgoal; remove from the queue 
                 ROS_INFO("reached a subgoal: x = %f, y= %f", current_pose_.pose.position.x,
@@ -218,7 +225,7 @@ void DesStatePublisher::pub_next_state() {
                 traj_pt_i_ = 0;
                 npts_traj_ = des_state_vec_.size();
                 motion_mode_ = PURSUING_SUBGOAL; // got a new plan; change mode to pursue it
-                ROS_INFO("computed new trajectory to pursue");
+                ROS_INFO("PURSUING SUBGOAL");
             } else { //no new goal? stay halted in this mode 
                 // by simply reiterating the last state sent (should have zero vel)
                 desired_state_publisher_.publish(seg_end_state_);
