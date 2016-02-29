@@ -36,6 +36,7 @@ private:
     nav_msgs::Odometry seg_end_state_;
     nav_msgs::Odometry seg_start_state_;
     nav_msgs::Odometry current_des_state_;
+    nav_msgs::Odometry curreny_vel_state;
     geometry_msgs::Twist halt_twist_;
     geometry_msgs::PoseStamped start_pose_;
     geometry_msgs::PoseStamped end_pose_;
