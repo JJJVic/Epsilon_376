@@ -71,7 +71,7 @@ public:
     geometry_msgs::Quaternion convertPlanarPsi2Quaternion(double psi);
 
     //utility to fill a PoseStamped object from planar x,y,phi info
-    geometry_msgs::PoseStamped xyPsi2PoseStamped(double x, double y, double psi);
+    static geometry_msgs::PoseStamped xyPsi2PoseStamped(double x, double y, double psi);
 
     //here are the main traj-builder fncs:
     void build_trapezoidal_spin_traj(geometry_msgs::PoseStamped start_pose,

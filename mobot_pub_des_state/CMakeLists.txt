@@ -33,6 +33,7 @@ cs_add_executable(mobot_pub_des_state src/pub_des_state_main.cpp src/pub_des_sta
 cs_add_executable(open_loop_controller src/open_loop_controller.cpp)
 cs_add_executable(pub_des_state_path_client src/pub_des_state_path_client.cpp)
 cs_add_executable(lidar src/lidar.cpp)
+cs_add_executable(poke_the_robot src/poke_the_robot.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package
 # target_link_library(example my_lib)
