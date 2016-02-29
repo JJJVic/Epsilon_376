@@ -1,0 +1,5 @@
+<launch>
+<node name="lidar" pkg="mobot_pub_des_state" type="lidar" launch-prefix="xterm -e"/>
+<node name="poke_mobot" pkg="mobot_pub_des_state" type="poke_the_robot" launch-prefix="xterm -e"/>
+<node name="main_mobot" pkg="mobot_pub_des_state" type="mobot_pub_des_state" output = "screen"/>
+</launch>
