@@ -193,7 +193,7 @@ void DesStatePublisher::pub_next_state() {
             //extract the i'th point of our plan:
         	//ROS_INFO("PURSUING SUBGOAL");
             current_des_state_ = des_state_vec_[traj_pt_i_];
-            curreny_vel_state = current_des_state_;
+            current_vel_state = current_des_state_;
             current_pose_.pose = current_des_state_.pose.pose;
             current_des_state_.header.stamp = ros::Time::now();
             desired_state_publisher_.publish(current_des_state_);

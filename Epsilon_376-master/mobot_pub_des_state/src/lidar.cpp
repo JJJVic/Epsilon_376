@@ -14,7 +14,7 @@ double range_min_ = 0.0;
 double range_max_ = 0.0;
 bool laser_alarm_ = false;
 
-const double MIN_SAFE_DISTANCE = 1.0; // set alarm if anything is within 0.35m of the front of robot
+const double MIN_SAFE_DISTANCE = 1.5; // set alarm if anything is within 1.5m of the front of robot
 std::vector<float> laser_ranges;
 int ping_index_max;
 int ping_index_min;

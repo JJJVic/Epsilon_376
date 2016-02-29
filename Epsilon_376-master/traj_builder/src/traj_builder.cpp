@@ -405,12 +405,13 @@ void TrajBuilder::build_triangular_spin_traj(geometry_msgs::PoseStamped start_po
 //compute trajectory corresponding to applying max prudent decel to halt
 void TrajBuilder::build_braking_traj(geometry_msgs::PoseStamped start_pose,
 		std::vector<nav_msgs::Odometry> &vec_of_states,nav_msgs::Odometry current_vel_states) {
-
+	ROS_INFO("We're building a braking trajectory now...");
 	nav_msgs::Odometry des_state;
 	des_state.header = start_pose.header; //really, want to copy the frame_id
 	des_state.pose.pose = start_pose.pose; //start from here
 
 	des_state.twist.twist = current_vel_states.twist.twist;
+	vec_of_states.clear();
 	vec_of_states.push_back(des_state);
 
 	double x_des = start_pose.pose.position.x; //start from here
@@ -443,7 +444,7 @@ void TrajBuilder::build_braking_traj(geometry_msgs::PoseStamped start_pose,
 	}
 
 	while(spin >0){
-		spin -= accel*dt_; //Euler one-step integration
+		spin -= alpha_max_*dt_; //Euler one-step integration
 		des_state.twist.twist.linear.z = spin;
 		psi_des += spin*dt_; //Euler one-step integration
 		des_state.pose.pose.orientation = convertPlanarPsi2Quaternion(psi_des);
