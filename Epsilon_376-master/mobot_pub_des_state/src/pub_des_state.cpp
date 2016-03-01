@@ -119,7 +119,7 @@ void DesStatePublisher::pub_next_state() {
     	ROS_WARN("E-STOP TRIGGERED");
         e_stop_trigger_ = false; //reset trigger
         //compute a halt trajectory
-        trajBuilder_.build_braking_traj(current_pose_, des_state_vec_);
+        trajBuilder_.build_braking_traj(current_pose_, des_state_vec_,current_vel_state);
         motion_mode_ = HALTING;
         traj_pt_i_ = 0;
         npts_traj_ = des_state_vec_.size();
@@ -129,7 +129,7 @@ void DesStatePublisher::pub_next_state() {
     	ROS_WARN("HARDWARE E-STOP TRIGGERED");
         h_e_stop_ = false; //reset trigger
         //compute a halt trajectory
-        trajBuilder_.build_braking_traj(current_pose_, des_state_vec_);
+        trajBuilder_.build_braking_traj(current_pose_, des_state_vec_,current_vel_state);
         motion_mode_ = HALTING;
         traj_pt_i_ = 0;
         npts_traj_ = des_state_vec_.size();
@@ -139,7 +139,7 @@ void DesStatePublisher::pub_next_state() {
     	ROS_WARN("LIDAR ALARM TRIGGERED");
         alarm = false; //reset trigger
         //compute a halt trajectory
-        trajBuilder_.build_braking_traj(current_pose_, des_state_vec_);
+        trajBuilder_.build_braking_traj(current_pose_, des_state_vec_,current_vel_state);
         motion_mode_ = HALTING;
         traj_pt_i_ = 0;
         npts_traj_ = des_state_vec_.size();
@@ -193,6 +193,7 @@ void DesStatePublisher::pub_next_state() {
             //extract the i'th point of our plan:
         	//ROS_INFO("PURSUING SUBGOAL");
             current_des_state_ = des_state_vec_[traj_pt_i_];
+            curreny_vel_state = current_des_state_;
             current_pose_.pose = current_des_state_.pose.pose;
             current_des_state_.header.stamp = ros::Time::now();
             desired_state_publisher_.publish(current_des_state_);
