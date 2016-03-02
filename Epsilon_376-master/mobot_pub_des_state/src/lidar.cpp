@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     //create a Subscriber object and have it subscribe to the lidar topic
     ros::Publisher lidar_alarm_publisher_ = nh.advertise<std_msgs::Bool>("lidar_alarm", 1);
     ros::Publisher lidar_dist_publisher_ = nh.advertise<std_msgs::Float32>("lidar_dist", 1);
-    ros::Subscriber lidar_subscriber = nh.subscribe("scan", 1, laserCallback);
+    ros::Subscriber lidar_subscriber = nh.subscribe("base_laser1_scan", 1, laserCallback);
     got_the_laser = false;
     std_msgs::Bool lidar_alarm_msg;
     while (ros::ok()) // ctrl+C to shut it down

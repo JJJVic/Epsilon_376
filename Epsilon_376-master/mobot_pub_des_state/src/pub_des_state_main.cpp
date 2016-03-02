@@ -15,9 +15,9 @@ void alarmCB(const std_msgs::Bool g_alarm) {
 }
 void estopCallback(const std_msgs::Bool estop_call) {
   if (estop_call.data == true){
-    *estop = true;
+    *estop = false;
   }
-  else{*estop = false;}
+  else{*estop = true;}
 }
 
 int main(int argc, char **argv) {
